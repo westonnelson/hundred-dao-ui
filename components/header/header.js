@@ -19,6 +19,7 @@ import stores from '../../stores';
 import { formatAddress } from '../../utils';
 
 import classes from './header.module.css';
+import useENS from '../hooks/useENS';
 
 const StyledSwitch = withStyles((theme) => ({
   root: {
@@ -40,7 +41,7 @@ const StyledSwitch = withStyles((theme) => ({
     '&$focusVisible $thumb': {
       color: '#ffffff',
       border: '6px solid #fff',
-    }
+    },
   },
   thumb: {
     width: 24,
@@ -78,6 +79,8 @@ function Header(props) {
   const [account, setAccount] = useState(null);
   const [darkMode, setDarkMode] = useState(props.theme.palette.type === 'dark' ? true : false);
   const [unlockOpen, setUnlockOpen] = useState(false);
+
+  const { ensName, ensAvatar } = useENS(account?.address);
 
   useEffect(() => {
     const accountConfigure = () => {
@@ -136,8 +139,12 @@ function Header(props) {
         />
       </div>
       <Button disableElevation className={classes.accountButton} variant="contained" color="secondary" onClick={onAddressClicked}>
-        {account && account.address && <div className={`${classes.accountIcon} ${classes.metamask}`}></div>}
-        <Typography variant="h5">{account && account.address ? formatAddress(account.address) : 'Connect Wallet'}</Typography>
+        {account && account.address && ensAvatar ? (
+          <img className={classes.accountImage} src={ensAvatar} alt={account.address} />
+        ) : (
+          <div className={`${classes.accountIcon} ${classes.metamask}`} />
+        )}
+        <Typography variant="h5">{account && account.address ? ensName ?? formatAddress(account.address) : 'Connect Wallet'}</Typography>
       </Button>
       {unlockOpen && <Unlock modalOpen={unlockOpen} closeModal={closeUnlock} />}
     </div>

@@ -83,7 +83,7 @@ class MySnackbar extends Component {
     let color = colors.blue;
     let messageType = '';
     let actions = [
-      <IconButton key="close" aria-label="Close" onClick={this.handleClose}>
+      <IconButton key="close-snackbar" aria-label="Close" onClick={this.handleClose}>
         <CloseIcon />
       </IconButton>,
     ];
@@ -117,10 +117,10 @@ class MySnackbar extends Component {
         let snackbarMessage = `${message.baseUrl}/tx/${message.hash}`;
 
         actions = [
-          <Button variant="text" size="small" onClick={() => window.open(snackbarMessage, '_blank')}>
+          <Button key="close-view" variant="text" size="small" onClick={() => window.open(snackbarMessage, '_blank')}>
             View
           </Button>,
-          <IconButton key="close" aria-label="Close" onClick={this.handleClose}>
+          <IconButton key="close-icon" aria-label="Close" onClick={this.handleClose}>
             <CloseIcon />
           </IconButton>,
         ];
@@ -155,7 +155,7 @@ class MySnackbar extends Component {
                 display: 'inline-block',
                 verticalAlign: 'middle',
                 maxWidth: '400px',
-                overflowX: 'hidden'
+                overflowX: 'hidden',
               }}
             >
               <Typography variant="body1" style={{ fontSize: '12px', color: color }}>

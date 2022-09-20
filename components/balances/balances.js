@@ -1,22 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
-import { Typography, Paper, TextField, InputAdornment, Grid } from '@material-ui/core';
+import { Typography, Paper } from '@material-ui/core';
 import Skeleton from '@material-ui/lab/Skeleton';
 import classes from './balances.module.css';
-import BigNumber from 'bignumber.js';
 
-import stores from '../../stores/index.js';
-import { VAULTS_UPDATED, ETHERSCAN_URL, LEND_UPDATED, CONFIGURE_RETURNED } from '../../stores/constants';
-
-import { formatCurrency, formatAddress } from '../../utils';
+import { formatCurrency } from '../../utils';
 import moment from 'moment';
 
 const WEEK = 604800;
-const currentEpochTime = () => Math.floor(new Date().getTime() / 1000)
-const nextEpochTime = () => Math.floor(currentEpochTime() / WEEK) * WEEK + WEEK
+const currentEpochTime = () => Math.floor(new Date().getTime() / 1000);
+const nextEpochTime = () => Math.floor(currentEpochTime() / WEEK) * WEEK + WEEK;
 
 function Balances({ project }) {
-
   const timeDiff = () => {
     let diff = moment.duration(moment.unix(nextEpochTime()).diff(moment()));
     let days = Math.trunc(diff.asDays());
@@ -27,24 +22,23 @@ function Balances({ project }) {
     let diffString = '';
 
     if (days) {
-      diffString += `${days}d`
+      diffString += `${days}d`;
     }
 
     if (hours) {
-      diffString += ` ${hours}h`
+      diffString += ` ${hours}h`;
     }
 
     if (minutes) {
-      diffString += ` ${minutes}m`
+      diffString += ` ${minutes}m`;
     }
 
     if (seconds) {
-      diffString += ` ${seconds}s`
+      diffString += ` ${seconds}s`;
     }
 
-    return diffString
-
-  }
+    return diffString;
+  };
 
   const [timeToNextEpoch, setTimeToNextEpoch] = useState(timeDiff());
 
@@ -58,9 +52,7 @@ function Balances({ project }) {
       <div className={classes.overviewCard}>
         <div>
           <Typography variant="h5">{project?.tokenMetadata?.symbol} price</Typography>
-          <Typography variant="h3">
-            {!project?.hndPrice ? <Skeleton style={{ minWidth: '200px ' }} /> : `$${formatCurrency(project?.hndPrice, 2)}`}
-          </Typography>
+          <Typography variant="h3">{!project?.hndPrice ? <Skeleton style={{ minWidth: '200px ' }} /> : `$${formatCurrency(project?.hndPrice, 2)}`}</Typography>
         </div>
       </div>
       <div className={classes.separator}></div>
@@ -76,28 +68,34 @@ function Balances({ project }) {
       <div className={classes.overviewCard}>
         <div>
           <Typography variant="h5">{project?.veTokenMetadata?.symbol} balance</Typography>
-          <Typography variant="h3">{!project?.veTokenMetadata?.balance ? <Skeleton style={{ minWidth: '200px ' }} /> : `${formatCurrency(project?.veTokenMetadata?.balance, 4)}`}</Typography>
+          <Typography variant="h3">
+            {!project?.veTokenMetadata?.balance ? <Skeleton style={{ minWidth: '200px ' }} /> : `${formatCurrency(project?.veTokenMetadata?.balance, 4)}`}
+          </Typography>
         </div>
       </div>
       <div className={classes.separator}></div>
       <div className={classes.overviewCard}>
         <div>
           <Typography variant="h5">Total {project?.veTokenMetadata?.symbol}</Typography>
-          <Typography variant="h3">{!project ? <Skeleton style={{ minWidth: '200px ' }} /> : `${formatCurrency(project?.veTokenMetadata?.totalSupply, 0)}`}</Typography>
+          <Typography variant="h3">
+            {!project ? <Skeleton style={{ minWidth: '200px ' }} /> : `${formatCurrency(project?.veTokenMetadata?.totalSupply, 0)}`}
+          </Typography>
         </div>
       </div>
       <div className={classes.separator}></div>
       <div className={classes.overviewCard}>
         <div>
-          <Typography variant="h5">Total {project?.tokenMetadata?.symbol} staked</Typography>
-          <Typography variant="h3">{!project ? <Skeleton style={{ minWidth: '200px ' }} /> : `${formatCurrency(project?.veTokenMetadata?.supply, 0)}`}</Typography>
+          <Typography variant="h5">Total {project?.tokenMetadata?.symbol} locked</Typography>
+          <Typography variant="h3">
+            {!project ? <Skeleton style={{ minWidth: '200px ' }} /> : `${formatCurrency(project?.veTokenMetadata?.supply, 0)}`}
+          </Typography>
         </div>
       </div>
       <div className={classes.separator}></div>
       <div className={classes.overviewCard}>
         <div>
           <Typography variant="h5">Epoch ends in</Typography>
-          <Typography variant="h3">{ timeToNextEpoch }</Typography>
+          <Typography variant="h3">{timeToNextEpoch}</Typography>
         </div>
       </div>
     </Paper>

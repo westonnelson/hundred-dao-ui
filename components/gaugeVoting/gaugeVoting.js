@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Paper, TextField, InputAdornment, Button, Tooltip, CircularProgress } from '@material-ui/core';
-import Skeleton from '@material-ui/lab/Skeleton';
+import { Typography, Paper, TextField, Button, CircularProgress } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import BigNumber from 'bignumber.js';
 import { formatCurrency } from '../../utils';
-
-import PieChart from './pieChart';
-import GaugeVotesTable from './gaugeVotesTable';
 
 import stores from '../../stores/index.js';
 import { ERROR, VOTE, VOTE_RETURNED } from '../../stores/constants';
@@ -21,12 +17,10 @@ export default function GaugeVoting({ project }) {
   const [gaugeError, setGaugeError] = useState(false);
 
   const [voteLoading, setVoteLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(function () {
     const voteReturned = () => {
       setVoteLoading(false);
-      setResetLoading(false);
     };
 
     stores.emitter.on(VOTE_RETURNED, voteReturned);
@@ -37,14 +31,6 @@ export default function GaugeVoting({ project }) {
       stores.emitter.removeListener(ERROR, voteReturned);
     };
   }, []);
-
-  const setAmountPercent = (percent) => {
-    if (!project || !project.tokenMetadata) {
-      return;
-    }
-
-    setAmount(project.tokenMetadata.balance.times(BigNumber(percent).div(BigNumber(100))).toFixed(project.tokenMetadata.decimals));
-  };
 
   const onGaugeSelectChanged = (event, theOption) => {
     setGauge(theOption);
@@ -59,7 +45,7 @@ export default function GaugeVoting({ project }) {
       setGaugeError(true);
       error = true;
     }
-    if (!amount || amount === '' || isNaN(amount) || amount > 100 || amount < 0) {
+    if (amount === undefined || isNaN(amount) || amount > 100 || amount < 0) {
       setAmountError(true);
       error = true;
     }
@@ -71,15 +57,54 @@ export default function GaugeVoting({ project }) {
     }
   };
 
-  const onReset = (gauge) => {
-    setResetLoading(true);
-
-    stores.dispatcher.dispatch({ type: VOTE, content: { gaugeAddress: gauge.address, amount: '0', project } });
+  const canVoteFor = (project, gauge) => {
+    return !project?.isV1Controller || !gauge || gauge.nextVoteTimestamp === 0 || gauge.nextVoteTimestamp <= moment().unix();
   };
 
-  const canVoteFor = (gauge) => {
-      return !gauge || gauge.nextVoteTimestamp === 0 || gauge.nextVoteTimestamp <= moment().unix()
-  };
+  //10 days cooldown
+  function Countdown() {
+    const timeDiff = () => {
+      let diff = moment.duration(moment.unix(gauge?.nextVoteTimestamp).diff(moment()));
+      let days = Math.trunc(diff.asDays());
+      let hours = Math.trunc(diff.asHours() % 24);
+
+      let minutes = Math.trunc(diff.asMinutes() % 60);
+      let seconds = Math.trunc(diff.asSeconds() % 60);
+
+      let diffString = '';
+
+      if (days) {
+        diffString += `${days}d`;
+      }
+
+      if (hours) {
+        diffString += ` ${hours}h`;
+      }
+
+      if (minutes) {
+        diffString += ` ${minutes}m`;
+      }
+
+      if (seconds) {
+        diffString += ` ${seconds}s`;
+      }
+
+      return diffString;
+    };
+
+    const [timeToNextEpoch, setTimeToNextEpoch] = useState(timeDiff());
+
+    useEffect(() => {
+      const timer = setTimeout(() => setTimeToNextEpoch(timeDiff()), 1000);
+      return () => clearTimeout(timer);
+    });
+
+    return (
+      <div>
+        <Typography variant="h5">Vote begins in {timeToNextEpoch}</Typography>
+      </div>
+    );
+  }
 
   return (
     <Paper elevation={1} className={classes.projectCardContainer}>
@@ -87,7 +112,9 @@ export default function GaugeVoting({ project }) {
         Gauge Voting
       </Typography>
       <div>
-        <Typography variant="h5" className={classes.sectionHeader}>Vote for your gauge</Typography>
+        <Typography variant="h5" className={classes.sectionHeader}>
+          Vote for your gauge
+        </Typography>
         <div className={classes.textField}>
           <div className={classes.inputTitleContainer}>
             <div className={classes.inputTitle}>
@@ -101,11 +128,11 @@ export default function GaugeVoting({ project }) {
             options={project?.gauges}
             value={gauge}
             onChange={onGaugeSelectChanged}
-            getOptionLabel={(option) => option.lpToken.symbol}
+            getOptionLabel={(option) => `${option.lpToken.symbol} ${option.isKilled ? '(inactive)' : ''}`}
             fullWidth={true}
             renderOption={(option, { selected }) => (
               <React.Fragment>
-                <div className={classes.text}>{option.lpToken.symbol}</div>
+                <div className={classes.text}>{`${option.lpToken.symbol} ${option.isKilled ? '(inactive)' : ''}`}</div>
               </React.Fragment>
             )}
             renderInput={(params) => (
@@ -143,16 +170,16 @@ export default function GaugeVoting({ project }) {
           />
         </div>
         <div className={classes.actionButton}>
-          <Button fullWidth disableElevation variant="contained"
-                  color="primary" size="large" onClick={onVote}
-                  disabled={voteLoading || !canVoteFor(gauge)}
+          <Button
+            fullWidth
+            disableElevation
+            variant="contained"
+            color="primary"
+            size="large"
+            onClick={onVote}
+            disabled={voteLoading || !canVoteFor(project, gauge)}
           >
-            {
-              canVoteFor(gauge) ?
-                <Typography variant="h5">{voteLoading ? <CircularProgress size={15} /> : 'Vote'}</Typography>
-              :
-                <Typography variant="h5">Vote disabled until { moment.unix(gauge?.nextVoteTimestamp).format('YYYY-MM-DD HH:mm') }</Typography>
-            }
+            {canVoteFor(project, gauge) ? <Typography variant="h5">{voteLoading ? <CircularProgress size={15} /> : 'Vote'}</Typography> : <Countdown />}
           </Button>
         </div>
         <div className={classes.calculationResults}>
@@ -172,24 +199,12 @@ export default function GaugeVoting({ project }) {
 
               return (
                 <div className={classes.vote_line} key={'gauge' + idx}>
-                  <div className={classes.calculationResult}>
-                    <Typography variant="h5">{gauge.lpToken.name}</Typography>
-                    <Typography variant="h5" className={classes.bold}>
-                      {formatCurrency(gauge.userVotesPercent)}%
-                    </Typography>
-                  </div>
-                  <Button
-                    disableElevation
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    onClick={() => {
-                      onReset(gauge);
-                    }}
-                    disabled={resetLoading || !canVoteFor(gauge)}
-                  >
-                    <Typography variant="h5">{resetLoading ? <CircularProgress size={15} /> : 'Reset gauge'}</Typography>
-                  </Button>
+                  <Typography variant="h5">
+                    {gauge.lpToken.name} {`${gauge.isKilled ? '(inactive)' : ''}`}
+                  </Typography>
+                  <Typography variant="h5" className={classes.calculationResult}>
+                    {formatCurrency(gauge.userVotesPercent)}%
+                  </Typography>
                 </div>
               );
             })}

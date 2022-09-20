@@ -1,0 +1,88 @@
+.overviewContainer {
+  padding: 24px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border-radius: 10px;
+}
+
+.overviewCard {
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding-top: 12px;
+}
+
+.sectionHeader {
+  padding-bottom: 12px;
+}
+
+.sectionsubHeader {
+  padding-bottom: 30px;
+}
+
+.subsectionHeader {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.inputTitleContainer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inputTitle {
+  padding-bottom: 6px;
+  margin-left: 12px;
+}
+
+.locksTable {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  padding: 12px;
+  border-radius: 10px;
+  width: 100%;
+}
+
+.lockChainName {
+  text-align: end;
+}
+
+.lock_line {
+  font-weight: bold;
+  display: grid;
+  grid-template-columns: 50% 48%;
+  grid-gap: 2%;
+  align-items: center;
+  margin-bottom: 2%;
+}
+
+@media screen and (max-width: 1600px) {
+  .overviewContainer {
+    margin: 24px 24px;
+    padding: 24px 24px;
+  }
+  .separator {
+    margin-left: 24px;
+    margin-right: 24px;
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  .overviewContainer {
+    margin: 12px 12px;
+    padding: 24px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .separator {
+    border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+    width: calc(100%);
+    margin: 12px 0px 12px 0px;
+    height: 0px;
+  }
+}

@@ -4,14 +4,15 @@ import Skeleton from '@material-ui/lab/Skeleton';
 import BigNumber from 'bignumber.js';
 import { formatCurrency } from '../../utils';
 import moment from 'moment';
-import { ethers } from "ethers"
+import { ethers } from 'ethers';
 import stores from '../../stores/index.js';
-import { ERROR, INCREASE_LOCK_AMOUNT, INCREASE_LOCK_AMOUNT_RETURNED, APPROVE_LOCK, APPROVE_LOCK_RETURNED } from '../../stores/constants';
+import { ERROR, INCREASE_LOCK_AMOUNT, INCREASE_LOCK_AMOUNT_RETURNED, APPROVE_LOCK, APPROVE_LOCK_RETURNED, GET_PROJECT } from '../../stores/constants';
 
 import classes from './veAssetModification.module.css';
 
 export default function VeAssetGeneration({ project }) {
   const [approveLoading, setApproveLoading] = useState(false);
+  const [revokeApproveLoading, setRevokeApproveLoading] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
 
   const [amount, setAmount] = useState('');
@@ -22,6 +23,9 @@ export default function VeAssetGeneration({ project }) {
     const lockReturned = () => {
       setLockLoading(false);
       setApproveLoading(false);
+      setRevokeApproveLoading(false);
+
+      stores.dispatcher.dispatch({ type: GET_PROJECT, content: { id: project.id } });
     };
 
     stores.emitter.on(INCREASE_LOCK_AMOUNT_RETURNED, lockReturned);
@@ -39,7 +43,7 @@ export default function VeAssetGeneration({ project }) {
     if (!project || !project.tokenMetadata) {
       return;
     }
-    
+
     //29524135316538781012501
     setAmount(project.tokenMetadata.balance.times(BigNumber(percent).div(BigNumber(100))).toFixed(project.tokenMetadata.decimals));
   };
@@ -72,13 +76,28 @@ export default function VeAssetGeneration({ project }) {
 
     if (!error) {
       setApproveLoading(true);
-      stores.dispatcher.dispatch({ type: APPROVE_LOCK, content: { amount: 'max', project } });
+      stores.dispatcher.dispatch({
+        type: APPROVE_LOCK,
+        content: {
+          amount: project?.isV1Escrow ? amount : 'max',
+          project,
+        },
+      });
     }
+  };
+
+  const onRevokeApprove = () => {
+    setAmountError(false);
+    setSelectedDateError(false);
+    setRevokeApproveLoading(true);
+    stores.dispatcher.dispatch({ type: APPROVE_LOCK, content: { amount: BigNumber(0), project } });
   };
 
   return (
     <Paper elevation={1} className={classes.projectCardContainer}>
-      <Typography variant="h3" className={ classes.sectionHeader }>Lock additional {project && project.tokenMetadata ? project.tokenMetadata.symbol : 'asset'}</Typography>
+      <Typography variant="h3" className={classes.sectionHeader}>
+        Lock additional {project && project.tokenMetadata ? project.tokenMetadata.symbol : 'asset'}
+      </Typography>
       <div className={classes.textField}>
         <div className={classes.inputTitleContainer}>
           <div className={classes.inputTitle}>
@@ -118,6 +137,24 @@ export default function VeAssetGeneration({ project }) {
         />
       </div>
       <div className={classes.actionButton}>
+        {project?.isV1Escrow ? (
+          <Button
+            fullWidth
+            disableElevation
+            variant="contained"
+            color="primary"
+            size="large"
+            onClick={onRevokeApprove}
+            disabled={approveLoading || !project?.tokenMetadata?.allowance || project?.tokenMetadata?.allowance.eq(BigNumber(0))}
+            className={classes.button}
+          >
+            <Typography variant="h5">
+              {revokeApproveLoading ? <CircularProgress size={15} /> : `Revoke Approval for ${project?.tokenMetadata?.symbol}`}
+            </Typography>
+          </Button>
+        ) : (
+          ''
+        )}
         <Button
           fullWidth
           disableElevation
@@ -125,7 +162,14 @@ export default function VeAssetGeneration({ project }) {
           color="primary"
           size="large"
           onClick={onApprove}
-          disabled={ approveLoading || !amount || amount === '' || isNaN(amount) || BigNumber(amount).eq(BigNumber(0)) || BigNumber(project?.tokenMetadata?.allowance).gte(BigNumber(amount))}
+          disabled={
+            approveLoading ||
+            !amount ||
+            amount === '' ||
+            isNaN(amount) ||
+            BigNumber(amount).eq(BigNumber(0)) ||
+            project?.tokenMetadata?.allowance.gte(BigNumber(amount))
+          }
           className={classes.button}
         >
           <Typography variant="h5">{approveLoading ? <CircularProgress size={15} /> : `Approve ${project?.tokenMetadata?.symbol}`}</Typography>
@@ -137,30 +181,39 @@ export default function VeAssetGeneration({ project }) {
           color="primary"
           size="large"
           onClick={onLock}
-          disabled={ lockLoading || !amount || amount === '' || isNaN(amount) || BigNumber(amount).eq(BigNumber(0)) || BigNumber(project?.tokenMetadata?.allowance).lt(BigNumber(amount))}
+          disabled={
+            lockLoading ||
+            !amount ||
+            amount === '' ||
+            isNaN(amount) ||
+            BigNumber(amount).eq(BigNumber(0)) ||
+            project?.tokenMetadata?.allowance.lt(BigNumber(amount))
+          }
           className={classes.button}
         >
           <Typography variant="h5">{lockLoading ? <CircularProgress size={15} /> : `Lock ${project?.tokenMetadata?.symbol}`}</Typography>
         </Button>
       </div>
-      { amount ?
-          <div className={classes.calculationResults}>
-            <div className={classes.calculationResult}>
-              <Typography variant="h3">You will receive: {projectedVeHndBalance(project, amount).toFixed(2)} veHND</Typography>
-            </div>
+      {amount ? (
+        <div className={classes.calculationResults}>
+          <div className={classes.calculationResult}>
+            <Typography variant="h3">
+              You will receive: {projectedVeHndBalance(project, amount).toFixed(2)} {project?.veTokenMetadata.symbol}
+            </Typography>
           </div>
-        :
-          ''
-      }
+        </div>
+      ) : (
+        ''
+      )}
     </Paper>
   );
 }
 
 function projectedVeHndBalance(project, amount) {
-  let lockEnd = project.veTokenMetadata.userLockEnd
-  let now = moment().unix()
+  let lockEnd = project.veTokenMetadata.userLockEnd;
+  let now = moment().unix();
   if (lockEnd > now) {
-    return +amount * (lockEnd - now) / (4 * 365 * 24 * 3600)
+    return (+amount * (lockEnd - now)) / (4 * 365 * 24 * 3600);
   }
-  return 0
+  return 0;
 }
